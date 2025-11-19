@@ -1,0 +1,154 @@
+/**
+ * Global Constants
+ */
+const SPREADSHEET_ID = "1VYgqUU4HEtBGoRSZ_xBxHPWZ-k4za7TuSEq7j0A5p3E";
+const DATA_SHEET_NAME = "id";
+const USER_SHEET_NAME = "Users"; // ชื่อชีตสำหรับเก็บข้อมูลผู้ใช้ (Email, Hashed Password, Name)
+
+/**
+ * Serves the HTML content to the web app.
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} The HTML output object.
+ */
+function doGet() {
+  // โหลด index.html และแสดงผล
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle("ระบบจัดการสมาชิก")
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ====================================================================
+// SERVER-SIDE UTILITY FUNCTIONS
+// ====================================================================
+
+/**
+ * Hashes a string using SHA-256. (WARNING: Not production-grade security for passwords)
+ * @param {string} rawString - The string to hash (password).
+ * @returns {string} The SHA-256 hash in hexadecimal.
+ */
+function hashPassword(rawString) {
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, rawString);
+  let hash = '';
+  for (let i = 0; i < digest.length; i++) {
+    const byte = digest[i];
+    const hex = (byte < 0 ? 256 + byte : byte).toString(16); 
+    hash += (hex.length === 1 ? '0' : '') + hex;
+  }
+  return hash;
+}
+
+/**
+ * Gets the Users sheet, creating it if it doesn't exist.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The user sheet object.
+ */
+function getUserSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(USER_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(USER_SHEET_NAME);
+    // Set headers: Email, Hashed Password, Name
+    sheet.getRange(1, 1, 1, 3).setValues([["Email", "Hashed Password", "Name"]]);
+  }
+  return sheet;
+}
+
+// ====================================================================
+// AUTHENTICATION FUNCTIONS
+// ====================================================================
+
+/**
+ * Registers a new user.
+ * @param {Object} formData - {name, email, password}
+ * @returns {Object} Status object {success: boolean, message: string}
+ */
+function registerUser(formData) {
+  const userSheet = getUserSheet();
+  const data = userSheet.getDataRange().getValues();
+  const email = formData.email.toLowerCase();
+
+  // 1. Check if user already exists by Email (as it is the unique identifier in the sheet)
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toLowerCase() === email) {
+      return { success: false, message: "อีเมลนี้ถูกใช้ลงทะเบียนแล้ว" };
+    }
+    if (data[i][2] === formData.name) {
+      return { success: false, message: "ชื่อผู้ใช้นี้มีผู้ใช้แล้ว กรุณาเลือกชื่ออื่น" };
+    }
+  }
+
+  // 2. Hash and save the password (Order: Email, Hashed Password, Name)
+  const hashedPassword = hashPassword(formData.password);
+  
+  userSheet.appendRow([email, hashedPassword, formData.name]);
+
+  return { success: true, message: "ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ" };
+}
+
+/**
+ * Logs in a user using Name and Password.
+ * @param {Object} formData - {name, password}
+ * @returns {Object} Status object {success: boolean, message: string, name: string, email: string}
+ */
+function loginUser(formData) {
+  const userSheet = getUserSheet();
+  const data = userSheet.getDataRange().getValues();
+  const inputName = formData.name; 
+  const inputHashedPassword = hashPassword(formData.password);
+
+  // Search for the user by Name (Column index 2, assuming 0-indexed)
+  for (let i = 1; i < data.length; i++) {
+    // data[i] = [Email(0), Hashed Password(1), Name(2)]
+    const [storedEmail, storedHash, storedName] = data[i];
+
+    if (storedName === inputName) { // Check name directly
+      // User found by name, check password hash
+      if (storedHash === inputHashedPassword) {
+        // Return email and name for successful login
+        return { success: true, message: "เข้าสู่ระบบสำเร็จ!", name: storedName, email: storedEmail }; 
+      } else {
+        return { success: false, message: "รหัสผ่านไม่ถูกต้อง" };
+      }
+    }
+  }
+
+  return { success: false, message: "ไม่พบชื่อผู้ใช้นี้ในระบบ" };
+}
+
+// ====================================================================
+// DATA ENTRY FUNCTION
+// ====================================================================
+
+/**
+ * Handles the form submission, saves data to Google Sheet.
+ * @param {Object} formData - Object containing form data {name, email, code}.
+ * @returns {Object} A status object {success: boolean}.
+ */
+function processForm(formData) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DATA_SHEET_NAME);
+
+    if (!sheet) {
+      // Create data sheet and set headers if it doesn't exist
+      sheet = ss.insertSheet(DATA_SHEET_NAME);
+      sheet.getRange(1, 1, 1, 3).setValues([["ชื่อ", "อีเมล", "รหัส"]]);
+    }
+    
+    // Prepare the data row (order: Name, Email, Code)
+    const row = [
+      formData.name,
+      formData.email,
+      formData.code
+    ];
+
+    // Append the row to the sheet
+    sheet.appendRow(row);
+
+    Logger.log("Data saved successfully.");
+    return { success: true, message: "บันทึกข้อมูลการสมัครสมาชิกสำเร็จแล้ว" };
+
+  } catch (e) {
+    Logger.log(`Error in processForm: ${e.toString()}`);
+    return { success: false, error: e.toString(), message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" };
+  }
+}
