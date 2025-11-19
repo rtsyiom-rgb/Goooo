@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการสมาชิก</title>
+  <!-- Load Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Sweet Alert 2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    /* ตั้งค่าฟอนต์หลักเป็น Inter */
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+  <!-- Main Container -->
+  <div class="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl shadow-2xl transition-all duration-300">
+
+    <!-- 1. Authentication View (Login/Register) -->
+    <div id="auth-view">
+        
+        <h1 id="auth-title" class="text-3xl font-extrabold text-gray-800 text-center mb-6">
+            เข้าสู่ระบบ
+        </h1>
+        
+        <!-- Tab Navigation -->
+        <div class="flex mb-6 rounded-lg bg-gray-100 p-1">
+            <button id="show-login-btn" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white shadow text-indigo-600 transition-colors duration-200">เข้าสู่ระบบ</button>
+            <button id="show-register-btn" class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-600 hover:text-indigo-600 transition-colors duration-200">สมัครสมาชิก</button>
+        </div>
+
+        <!-- Login Form (Uses NAME) -->
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label for="login-name" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้</label>
+                <input type="text" id="login-name" name="name" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    placeholder="ชื่อที่คุณใช้ลงทะเบียน">
+            </div>
+            <div>
+                <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                <input type="password" id="login-password" name="password" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    placeholder="กรุณาใส่รหัสผ่าน">
+            </div>
+            <button type="submit"
+                class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-200">
+                เข้าสู่ระบบ
+            </button>
+        </form>
+
+        <!-- Register Form (Uses Email and Name) -->
+        <form id="registerForm" class="space-y-4 hidden">
+            <div>
+                <label for="register-name" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้</label>
+                <input type="text" id="register-name" name="name" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    placeholder="ตั้งชื่อผู้ใช้ (ใช้สำหรับเข้าสู่ระบบ)">
+            </div>
+            <div>
+                <label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                <input type="email" id="register-email" name="email" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    placeholder="example@email.com (ใช้ในการกู้คืน)">
+            </div>
+            <div>
+                <label for="register-password" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                <input type="password" id="register-password" name="password" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    placeholder="ตั้งรหัสผ่าน">
+            </div>
+            <button type="submit"
+                class="w-full py-3 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200">
+                ลงทะเบียน
+            </button>
+        </form>
+    </div>
+
+    <!-- 2. Data Entry View (Main Content, Initially Hidden) -->
+    <div id="data-entry-view" class="hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">
+            <svg class="w-6 h-6 inline-block mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M17 17h.01"></path></svg>
+            <span id="welcome-message">ยินดีต้อนรับ!</span>
+        </h1>
+        <button id="logout-btn" class="text-sm font-medium text-red-600 hover:text-red-800 transition duration-150">
+            ออกจากระบบ
+        </button>
+      </div>
+
+      <p class="text-gray-500 mb-6">บันทึกข้อมูลการสมัครสมาชิก</p>
+
+      <form id="registrationForm" class="space-y-4">
+        
+        <!-- Field: Name (ชื่อ) - Prefilled from login -->
+        <div>
+          <label for="data-name" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้บันทึก (อ้างอิงจากผู้ใช้)</label>
+          <input type="text" id="data-name" name="name" required readonly
+            class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm cursor-not-allowed">
+        </div>
+
+        <!-- Field: Email (อีเมล) - Prefilled from login -->
+        <div>
+          <label for="data-email" class="block text-sm font-medium text-gray-700 mb-1">อีเมลผู้บันทึก</label>
+          <input type="email" id="data-email" name="email" required readonly
+            class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm cursor-not-allowed">
+        </div>
+
+        <!-- Field: ID/Code (รหัส) -->
+        <div>
+          <label for="data-code" class="block text-sm font-medium text-gray-700 mb-1">รหัส</label>
+          <input type="text" id="data-code" name="code" required
+            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+            placeholder="รหัสสำหรับยืนยันตัวตน/สมาชิก">
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit"
+          class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-200 transform hover:scale-[1.01]">
+          บันทึกข้อมูลการสมัคร
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Global state to store current user info
+    let currentUser = null; 
+
+    // Get elements
+    const authView = document.getElementById('auth-view');
+    const dataEntryView = document.getElementById('data-entry-view');
+    const authTitle = document.getElementById('auth-title');
+    
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const dataForm = document.getElementById('registrationForm');
+    
+    const showLoginBtn = document.getElementById('show-login-btn');
+    const showRegisterBtn = document.getElementById('show-register-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // ====================================================================
+    // UI SWITCHING FUNCTIONS
+    // ====================================================================
+    
+    /**
+     * สลับระหว่างฟอร์มเข้าสู่ระบบและสมัครสมาชิก
+     * @param {string} mode 'login' or 'register'
+     */
+    function switchAuthMode(mode) {
+      if (mode === 'login') {
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+        authTitle.textContent = 'เข้าสู่ระบบ';
+        // Active state for login button
+        showLoginBtn.classList.add('bg-white', 'shadow', 'text-indigo-600');
+        showLoginBtn.classList.remove('text-gray-600', 'hover:text-indigo-600');
+        // Inactive state for register button
+        showRegisterBtn.classList.remove('bg-white', 'shadow', 'text-indigo-600');
+        showRegisterBtn.classList.add('text-gray-600', 'hover:text-indigo-600');
+      } else {
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+        authTitle.textContent = 'สมัครสมาชิกใหม่';
+        // Active state for register button
+        showRegisterBtn.classList.add('bg-white', 'shadow', 'text-indigo-600');
+        showRegisterBtn.classList.remove('text-gray-600', 'hover:text-indigo-600');
+        // Inactive state for login button
+        showLoginBtn.classList.remove('bg-white', 'shadow', 'text-indigo-600');
+        showLoginBtn.classList.add('text-gray-600', 'hover:text-indigo-600');
+      }
+    }
+
+    /**
+     * สลับระหว่างหน้าเข้าสู่ระบบและหน้าบันทึกข้อมูล
+     * @param {boolean} isAuthenticated - true หากเข้าสู่ระบบแล้ว
+     * @param {Object} userData - ข้อมูลผู้ใช้ {name, email}
+     */
+    function switchView(isAuthenticated, userData = null) {
+      if (isAuthenticated && userData) {
+        currentUser = userData;
+        authView.classList.add('hidden');
+        dataEntryView.classList.remove('hidden');
+        
+        // Prefill data form with user details
+        document.getElementById('welcome-message').textContent = \`ยินดีต้อนรับคุณ \${userData.name}!\`;
+        document.getElementById('data-name').value = userData.name;
+        document.getElementById('data-email').value = userData.email;
+        document.getElementById('data-code').value = ''; // Clear code field
+      } else {
+        currentUser = null;
+        authView.classList.remove('hidden');
+        dataEntryView.classList.add('hidden');
+        switchAuthMode('login'); // Default back to login view
+      }
+    }
+    
+    // Initial setup
+    switchView(false);
+    
+    // Add event listeners for auth view tabs and logout
+    showLoginBtn.addEventListener('click', () => switchAuthMode('login'));
+    showRegisterBtn.addEventListener('click', () => switchAuthMode('register'));
+    logoutBtn.addEventListener('click', () => {
+      switchView(false);
+      Swal.fire({
+        icon: 'success',
+        title: 'ออกจากระบบแล้ว',
+        text: 'คุณสามารถเข้าสู่ระบบอีกครั้งเพื่อบันทึกข้อมูล',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    });
+
+    // ====================================================================
+    // GOOGLE SCRIPT RUNNER UTILITY
+    // ====================================================================
+    
+    /**
+     * แสดง Sweet Alert ขณะรอการทำงานของ Google App Script
+     * @param {string} title - ข้อความหัวข้อ
+     * @param {string} text - ข้อความรายละเอียด
+     */
+    function showLoading(title, text) {
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'info',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+    }
+
+    /**
+     * ฟังก์ชันจัดการผลลัพธ์จาก google.script.run
+     * @param {Object} result - ผลลัพธ์จากฝั่งเซิร์ฟเวอร์
+     * @param {function} successCallback - ฟังก์ชันที่จะเรียกเมื่อสำเร็จ
+     */
+    function handleScriptResult(result, successCallback) {
+        Swal.close();
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ!',
+                text: result.message || 'การดำเนินการสำเร็จ',
+                confirmButtonText: 'ตกลง'
+            }).then(() => {
+                successCallback(result);
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: result.message || 'ไม่สามารถดำเนินการได้',
+                confirmButtonText: 'ตกลง'
+            });
+            console.error('Backend Error:', result.error || result.message);
+        }
+    }
+
+    /**
+     * ฟังก์ชันจัดการเมื่อการเชื่อมต่อ App Script ล้มเหลว
+     * @param {Error} error - ข้อผิดพลาดที่เกิดขึ้น
+     */
+    function handleScriptFailure(error) {
+        Swal.close();
+        Swal.fire({
+            icon: 'error',
+            title: 'การเชื่อมต่อล้มเหลว',
+            text: 'ไม่สามารถติดต่อ Google App Script ได้: ' + (error.message || 'โปรดลองอีกครั้ง'),
+            confirmButtonText: 'ตกลง'
+        });
+        console.error('Script Run Failed:', error);
+    }
+    
+    // ====================================================================
+    // FORM SUBMISSION HANDLERS
+    // ====================================================================
+
+    // 1. Register Form Submission
+    registerForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = {
+        name: document.getElementById('register-name').value,
+        email: document.getElementById('register-email').value,
+        password: document.getElementById('register-password').value
+      };
+
+      showLoading('กำลังลงทะเบียน...', 'ระบบกำลังบันทึกข้อมูลผู้ใช้ใหม่');
+
+      google.script.run
+        .withSuccessHandler(result => handleScriptResult(result, () => {
+            // After successful registration, switch to login page
+            switchAuthMode('login');
+            registerForm.reset();
+            // Prefill name for login
+            document.getElementById('login-name').value = formData.name; 
+        }))
+        .withFailureHandler(handleScriptFailure)
+        .registerUser(formData);
+    });
+
+    // 2. Login Form Submission (Now uses Name)
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = {
+        name: document.getElementById('login-name').value,
+        password: document.getElementById('login-password').value
+      };
+      
+      showLoading('กำลังเข้าสู่ระบบ...', 'ระบบกำลังตรวจสอบข้อมูลประจำตัว');
+
+      google.script.run
+        .withSuccessHandler(result => handleScriptResult(result, (res) => {
+            // res now contains both name and email from the backend
+            const userData = { name: res.name, email: res.email }; 
+            switchView(true, userData);
+            loginForm.reset();
+        }))
+        .withFailureHandler(handleScriptFailure)
+        .loginUser(formData);
+    });
+
+    // 3. Data Entry Form Submission
+    dataForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Data pre-filled from successful login
+      const formData = {
+        name: document.getElementById('data-name').value,
+        email: document.getElementById('data-email').value,
+        code: document.getElementById('data-code').value
+      };
+      
+      showLoading('กำลังบันทึกข้อมูล...', 'ระบบกำลังบันทึกข้อมูลลง Google Sheet');
+
+      google.script.run
+        .withSuccessHandler(result => handleScriptResult(result, () => {
+            // After successful data saving
+            document.getElementById('data-code').value = ''; // Clear only the code field
+        }))
+        .withFailureHandler(handleScriptFailure)
+        .processForm(formData);
+    });
+
+  </script>
+</body>
+</html>
+
